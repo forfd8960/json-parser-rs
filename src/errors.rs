@@ -10,6 +10,8 @@ pub(crate) enum ParserError {
     InvalidArray,
     #[error("invalid object")]
     InvalidObject,
+    #[error("invalid token")]
+    InvalidToken(String),
 }
 
 #[derive(Debug, Error)]

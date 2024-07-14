@@ -38,7 +38,7 @@ impl Scanner {
         Ok(tokens)
     }
 
-    pub fn scan_token(&mut self) -> Result<Token, LexerError> {
+    fn scan_token(&mut self) -> Result<Token, LexerError> {
         let cur = self.advance();
 
         // let mut tokens: Vec<Token> = vec![];
