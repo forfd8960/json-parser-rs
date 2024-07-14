@@ -65,17 +65,10 @@ impl Scanner {
 
     fn scan_string(&mut self) -> Result<Token, LexerError> {
         let mut s = String::new();
-        loop {
-            if let Some(c) = self.peek() {
-                if c != '"' && !self.is_at_end() {
-                    if self.peek().unwrap() == '\n' {
-                        continue;
-                    }
 
-                    self.advance();
-                } else {
-                    break;
-                }
+        while let Some(c) = self.peek() {
+            if c != '"' && !self.is_at_end() {
+                self.advance();
             } else {
                 break;
             }
@@ -93,11 +86,9 @@ impl Scanner {
     }
 
     fn scan_number(&mut self) -> Result<Token, LexerError> {
-        loop {
-            if let Some(c) = self.peek() {
-                if c.is_numeric() {
-                    self.advance();
-                }
+        while let Some(c) = self.peek() {
+            if c.is_numeric() {
+                self.advance();
             } else {
                 break;
             }
@@ -112,6 +103,8 @@ impl Scanner {
                         while let Some(cc) = self.peek() {
                             if cc.is_numeric() {
                                 self.advance();
+                            } else {
+                                break;
                             }
                         }
                     }
@@ -127,11 +120,9 @@ impl Scanner {
     }
 
     fn scan_identifier(&mut self) -> Result<Token, LexerError> {
-        loop {
-            if let Some(c) = self.peek() {
-                if c.is_alphanumeric() {
-                    self.advance();
-                }
+        while let Some(c) = self.peek() {
+            if c.is_alphanumeric() {
+                self.advance();
             } else {
                 break;
             }
@@ -187,6 +178,93 @@ mod tests {
                 Token::Colon,
                 Token::String("value".to_string()),
                 Token::ObjectEnd,
+                Token::Eof,
+            ]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_scan_number() -> anyhow::Result<()> {
+        let mut scanner = Scanner::new(r#"{"weight":100}"#.to_string());
+        let tokens = scanner.scan()?;
+        assert_eq!(
+            tokens,
+            vec![
+                Token::ObjectStart,
+                Token::String("weight".to_string()),
+                Token::Colon,
+                Token::Number(100 as f64),
+                Token::ObjectEnd,
+                Token::Eof,
+            ]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_scan_number1() -> anyhow::Result<()> {
+        let mut scanner = Scanner::new(r#"[10.28]"#.to_string());
+        let tokens = scanner.scan()?;
+        assert_eq!(
+            tokens,
+            vec![
+                Token::ArrayStart,
+                Token::Number(10.28 as f64),
+                Token::Colon,
+                Token::ArrayEnd,
+                Token::Eof,
+            ]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_scan_boolean() -> anyhow::Result<()> {
+        let mut scanner = Scanner::new(r#"{"has_more":true, "contain":false}"#.to_string());
+        let tokens = scanner.scan()?;
+        assert_eq!(
+            tokens,
+            vec![
+                Token::ObjectStart,
+                Token::String("has_more".to_string()),
+                Token::Colon,
+                Token::Boolean(true),
+                Token::Comma,
+                Token::String("contain".to_string()),
+                Token::Colon,
+                Token::Boolean(false),
+                Token::ObjectEnd,
+                Token::Eof,
+            ]
+        );
+        Ok(())
+    }
+    #[test]
+    fn test_scan_array() -> anyhow::Result<()> {
+        let mut scanner =
+            Scanner::new(r#"["abc", true, false, 10, 10.24, {"key":"value"}]"#.to_string());
+        let tokens = scanner.scan()?;
+        assert_eq!(
+            tokens,
+            vec![
+                Token::ArrayStart,
+                Token::String("abc".to_string()),
+                Token::Comma,
+                Token::Boolean(true),
+                Token::Comma,
+                Token::Boolean(false),
+                Token::Comma,
+                Token::Number(10 as f64),
+                Token::Comma,
+                Token::Number(10.24 as f64),
+                Token::Comma,
+                Token::ObjectStart,
+                Token::String("key".to_string()),
+                Token::Colon,
+                Token::String("value".to_string()),
+                Token::ObjectEnd,
+                Token::ArrayEnd,
                 Token::Eof,
             ]
         );
