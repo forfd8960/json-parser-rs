@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub(crate) enum ParserError {
+pub enum ParserError {
     #[error("invalid number")]
     InvalidNumber,
     #[error("invalid string")]

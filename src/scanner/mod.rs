@@ -34,7 +34,6 @@ impl Scanner {
             tokens.push(token);
         }
 
-        tokens.push(Token::Eof);
         Ok(tokens)
     }
 
@@ -178,7 +177,6 @@ mod tests {
                 Token::Colon,
                 Token::String("value".to_string()),
                 Token::ObjectEnd,
-                Token::Eof,
             ]
         );
         Ok(())
@@ -196,7 +194,6 @@ mod tests {
                 Token::Colon,
                 Token::Number(100 as f64),
                 Token::ObjectEnd,
-                Token::Eof,
             ]
         );
         Ok(())
@@ -213,7 +210,6 @@ mod tests {
                 Token::Number(10.28 as f64),
                 Token::Colon,
                 Token::ArrayEnd,
-                Token::Eof,
             ]
         );
         Ok(())
@@ -235,7 +231,6 @@ mod tests {
                 Token::Colon,
                 Token::Boolean(false),
                 Token::ObjectEnd,
-                Token::Eof,
             ]
         );
         Ok(())
@@ -265,7 +260,6 @@ mod tests {
                 Token::String("value".to_string()),
                 Token::ObjectEnd,
                 Token::ArrayEnd,
-                Token::Eof,
             ]
         );
         Ok(())

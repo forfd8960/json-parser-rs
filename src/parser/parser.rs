@@ -69,7 +69,7 @@ impl Parser {
             self.consume(Token::Comma, "expected comma".to_string())?;
         }
 
-        self.consume(Token::ObjectEnd, "expected object end".to_string())?;
+        self.consume(Token::ObjectEnd, "expected object end:}".to_string())?;
         Ok(Json::Object(object))
     }
 
@@ -93,21 +93,31 @@ impl Parser {
     }
 
     fn parse_value(&mut self) -> Result<Json, ParserError> {
-        if let Some(current) = self.advance() {
-            match current {
-                Token::String(s) => Ok(Json::String(s)),
-                Token::Number(n) => Ok(Json::Number(n)),
-                Token::Boolean(b) => Ok(Json::Boolean(b)),
-                Token::Null => Ok(Json::Null),
-                Token::ObjectStart => self.parse_object(),
-                Token::ArrayStart => self.parse_array(),
-                _ => Err(ParserError::InvalidToken(format!(
-                    "invalid token: {:?}",
-                    self.tokens[self.index]
-                ))),
+        let current = self.current();
+        println!("current: {:?}", current);
+        match current {
+            Token::String(s) => {
+                self.advance();
+                Ok(Json::String(s))
             }
-        } else {
-            Err(ParserError::InvalidJson("json is end".to_string()))
+            Token::Number(n) => {
+                self.advance();
+                Ok(Json::Number(n))
+            }
+            Token::Boolean(b) => {
+                self.advance();
+                Ok(Json::Boolean(b))
+            }
+            Token::Null => {
+                self.advance();
+                Ok(Json::Null)
+            }
+            Token::ObjectStart => self.parse_object(),
+            Token::ArrayStart => self.parse_array(),
+            _ => Err(ParserError::InvalidToken(format!(
+                "invalid token: {:?}",
+                self.tokens[self.index]
+            ))),
         }
     }
 
@@ -198,6 +208,73 @@ mod tests {
         assert_eq!(
             obj,
             Json::Object(HashMap::from([("key".to_string(), Json::Number(1.0))]))
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_object1() -> Result<()> {
+        let tokens = vec![
+            Token::ObjectStart,
+            Token::String("key".to_string()),
+            Token::Colon,
+            Token::ArrayStart,
+            Token::Number(1.0),
+            Token::Comma,
+            Token::String("data".to_string()),
+            Token::Comma,
+            Token::Boolean(true),
+            Token::ArrayEnd,
+            Token::ObjectEnd,
+        ];
+        let mut parser = Parser::new(tokens);
+        let obj = parser.parse()?;
+
+        assert_eq!(
+            obj,
+            Json::Object(HashMap::from([(
+                "key".to_string(),
+                Json::Array(vec![
+                    Json::Number(1.0),
+                    Json::String("data".to_string()),
+                    Json::Boolean(true)
+                ])
+            )]))
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_object2() -> Result<()> {
+        let tokens = vec![
+            Token::ObjectStart,
+            Token::String("key".to_string()),
+            Token::Colon,
+            Token::ObjectStart,
+            Token::String("k1".to_string()),
+            Token::Colon,
+            Token::String("v1".to_string()),
+            Token::Comma,
+            Token::String("k2".to_string()),
+            Token::Colon,
+            Token::Boolean(true),
+            Token::ObjectEnd,
+            Token::ObjectEnd,
+        ];
+        let mut parser = Parser::new(tokens);
+        let obj = parser.parse()?;
+
+        assert_eq!(
+            obj,
+            Json::Object(HashMap::from([(
+                "key".to_string(),
+                Json::Object(HashMap::from([
+                    ("k1".to_string(), Json::String("v1".to_string())),
+                    ("k2".to_string(), Json::Boolean(true)),
+                ]))
+            )]))
         );
 
         Ok(())
