@@ -11,5 +11,4 @@ pub enum Token {
     NewLine,
     Comma, //,
     Colon, // :
-    Eof,
 }

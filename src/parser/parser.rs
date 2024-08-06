@@ -137,10 +137,6 @@ impl Parser {
 
         let current = self.tokens[self.index].clone();
         match current {
-            Token::ObjectStart => t == Token::ObjectStart,
-            Token::ObjectEnd => t == Token::ObjectEnd,
-            Token::ArrayStart => t == Token::ArrayStart,
-            Token::ArrayEnd => t == Token::ArrayEnd,
             Token::Number(_) => match t {
                 Token::Number(_) => true,
                 _ => false,
@@ -153,11 +149,7 @@ impl Parser {
                 Token::Boolean(_) => true,
                 _ => false,
             },
-            Token::Null => t == Token::Null,
-            Token::NewLine => t == Token::NewLine,
-            Token::Comma => t == Token::Comma,
-            Token::Colon => t == Token::Colon,
-            Token::Eof => t == Token::Eof,
+            _ => t == current,
         }
     }
 

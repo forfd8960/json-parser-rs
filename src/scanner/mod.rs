@@ -1,4 +1,4 @@
-use anyhow::{bail, Result};
+use anyhow::Result;
 
 use crate::{errors::LexerError, token::Token};
 
@@ -208,7 +208,6 @@ mod tests {
             vec![
                 Token::ArrayStart,
                 Token::Number(10.28 as f64),
-                Token::Colon,
                 Token::ArrayEnd,
             ]
         );
