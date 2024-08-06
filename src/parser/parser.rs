@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::Json;
 use crate::{errors::ParserError, token::Token};
 use anyhow::Result;
@@ -16,20 +18,98 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> Result<Json, ParserError> {
-        todo!()
+        let mut result = Json::Null;
+        while !self.is_end() {
+            let current = self.current();
+
+            match current {
+                Token::ObjectStart => {
+                    result = self.parse_object()?;
+                }
+                Token::ArrayStart => {
+                    result = self.parse_array()?;
+                }
+                _ => {
+                    return Err(ParserError::InvalidToken(format!(
+                        "invalid token: {:?}",
+                        self.tokens[self.index]
+                    )));
+                }
+            }
+        }
+
+        Ok(result)
     }
 
     fn parse_object(&mut self) -> Result<Json, ParserError> {
-        todo!()
+        let mut object: HashMap<String, Json> = HashMap::new();
+
+        self.consume(Token::ObjectStart, "expected object start".to_string())?;
+        while !self.check(Token::ObjectEnd) {
+            let key = self.consume(Token::String("".to_string()), "expected string".to_string())?;
+
+            self.consume(Token::Colon, "expected colon".to_string())?;
+
+            let value = self.parse_value()?;
+
+            if let Token::String(key_val) = key {
+                object.insert(key_val, value);
+            } else {
+                return Err(ParserError::InvalidToken(format!(
+                    "expected string, got {:?}",
+                    key
+                )));
+            }
+
+            if self.check(Token::ObjectEnd) {
+                break;
+            }
+            self.consume(Token::Comma, "expected comma".to_string())?;
+        }
+
+        self.consume(Token::ObjectEnd, "expected object end".to_string())?;
+        Ok(Json::Object(object))
     }
 
     fn parse_array(&mut self) -> Result<Json, ParserError> {
-        todo!()
+        self.consume(Token::ArrayStart, "expected array start: [".to_string())?;
+        let mut array = Vec::new();
+
+        while !self.check(Token::ArrayEnd) {
+            let value = self.parse_value()?;
+            array.push(value);
+
+            if self.check(Token::ArrayEnd) {
+                break;
+            }
+
+            self.consume(Token::Comma, "expected comma".to_string())?;
+        }
+
+        self.consume(Token::ArrayEnd, "expected array end: ]".to_string())?;
+        Ok(Json::Array(array))
+    }
+
+    fn parse_value(&mut self) -> Result<Json, ParserError> {
+        let current = self.current();
+        match current {
+            Token::String(s) => Ok(Json::String(s)),
+            Token::Number(n) => Ok(Json::Number(n)),
+            Token::Boolean(b) => Ok(Json::Boolean(b)),
+            Token::Null => Ok(Json::Null),
+            Token::ObjectStart => self.parse_object(),
+            Token::ArrayStart => self.parse_array(),
+            _ => Err(ParserError::InvalidToken(format!(
+                "invalid token: {:?}",
+                self.tokens[self.index]
+            ))),
+        }
     }
 
     fn consume(&mut self, t: Token, msg: String) -> Result<Token, ParserError> {
         if self.check(t) {
-            return Ok(self.advance());
+            let t = self.advance().unwrap();
+            return Ok(t);
         }
 
         Err(ParserError::InvalidToken(msg))
@@ -40,18 +120,46 @@ impl Parser {
             return false;
         }
 
-        self.tokens[self.index] == t
+        let current = self.tokens[self.index].clone();
+        match current {
+            Token::ObjectStart => t == Token::ObjectStart,
+            Token::ObjectEnd => t == Token::ObjectEnd,
+            Token::ArrayStart => t == Token::ArrayStart,
+            Token::ArrayEnd => t == Token::ArrayEnd,
+            Token::Number(_) => match t {
+                Token::Number(_) => true,
+                _ => false,
+            },
+            Token::String(_) => match t {
+                Token::String(_) => true,
+                _ => false,
+            },
+            Token::Boolean(_) => match t {
+                Token::Boolean(_) => true,
+                _ => false,
+            },
+            Token::Null => t == Token::Null,
+            Token::NewLine => t == Token::NewLine,
+            Token::Comma => t == Token::Comma,
+            Token::Colon => t == Token::Colon,
+            Token::Eof => t == Token::Eof,
+        }
     }
 
     fn is_end(&self) -> bool {
         self.tokens[self.index] == Token::Eof
     }
 
-    fn advance(&mut self) -> Token {
-        if !self.is_end() {
-            self.index += 1;
+    fn current(&self) -> Token {
+        self.tokens[self.index].clone()
+    }
+
+    fn advance(&mut self) -> Option<Token> {
+        if self.is_end() {
+            return None;
         }
 
-        self.tokens[self.index - 1].clone()
+        self.index += 1;
+        Some(self.tokens[self.index - 1].clone())
     }
 }
