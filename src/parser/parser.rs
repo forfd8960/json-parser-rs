@@ -24,9 +24,11 @@ impl Parser {
 
             match current {
                 Token::ObjectStart => {
+                    println!("object start...");
                     result = self.parse_object()?;
                 }
                 Token::ArrayStart => {
+                    println!("array start...");
                     result = self.parse_array()?;
                 }
                 _ => {
@@ -42,9 +44,9 @@ impl Parser {
     }
 
     fn parse_object(&mut self) -> Result<Json, ParserError> {
-        let mut object: HashMap<String, Json> = HashMap::new();
+        self.consume(Token::ObjectStart, "expected object start: {".to_string())?;
 
-        self.consume(Token::ObjectStart, "expected object start".to_string())?;
+        let mut object: HashMap<String, Json> = HashMap::new();
         while !self.check(Token::ObjectEnd) {
             let key = self.consume(Token::String("".to_string()), "expected string".to_string())?;
 
@@ -73,8 +75,8 @@ impl Parser {
 
     fn parse_array(&mut self) -> Result<Json, ParserError> {
         self.consume(Token::ArrayStart, "expected array start: [".to_string())?;
-        let mut array = Vec::new();
 
+        let mut array = Vec::new();
         while !self.check(Token::ArrayEnd) {
             let value = self.parse_value()?;
             array.push(value);
@@ -91,18 +93,21 @@ impl Parser {
     }
 
     fn parse_value(&mut self) -> Result<Json, ParserError> {
-        let current = self.current();
-        match current {
-            Token::String(s) => Ok(Json::String(s)),
-            Token::Number(n) => Ok(Json::Number(n)),
-            Token::Boolean(b) => Ok(Json::Boolean(b)),
-            Token::Null => Ok(Json::Null),
-            Token::ObjectStart => self.parse_object(),
-            Token::ArrayStart => self.parse_array(),
-            _ => Err(ParserError::InvalidToken(format!(
-                "invalid token: {:?}",
-                self.tokens[self.index]
-            ))),
+        if let Some(current) = self.advance() {
+            match current {
+                Token::String(s) => Ok(Json::String(s)),
+                Token::Number(n) => Ok(Json::Number(n)),
+                Token::Boolean(b) => Ok(Json::Boolean(b)),
+                Token::Null => Ok(Json::Null),
+                Token::ObjectStart => self.parse_object(),
+                Token::ArrayStart => self.parse_array(),
+                _ => Err(ParserError::InvalidToken(format!(
+                    "invalid token: {:?}",
+                    self.tokens[self.index]
+                ))),
+            }
+        } else {
+            Err(ParserError::InvalidJson("json is end".to_string()))
         }
     }
 
@@ -147,7 +152,7 @@ impl Parser {
     }
 
     fn is_end(&self) -> bool {
-        self.tokens[self.index] == Token::Eof
+        self.index >= self.tokens.len()
     }
 
     fn current(&self) -> Token {
@@ -161,5 +166,40 @@ impl Parser {
 
         self.index += 1;
         Some(self.tokens[self.index - 1].clone())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::Result;
+
+    #[test]
+    fn test_parse_array() -> Result<()> {
+        let tokens = vec![Token::ArrayStart, Token::Number(1.0), Token::ArrayEnd];
+        let mut parser = Parser::new(tokens);
+        let obj = parser.parse()?;
+        assert_eq!(obj, Json::Array(vec![Json::Number(1.0)]));
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_object() -> Result<()> {
+        let tokens = vec![
+            Token::ObjectStart,
+            Token::String("key".to_string()),
+            Token::Colon,
+            Token::Number(1.0),
+            Token::ObjectEnd,
+        ];
+        let mut parser = Parser::new(tokens);
+        let obj = parser.parse()?;
+
+        assert_eq!(
+            obj,
+            Json::Object(HashMap::from([("key".to_string(), Json::Number(1.0))]))
+        );
+
+        Ok(())
     }
 }

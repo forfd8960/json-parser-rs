@@ -12,6 +12,8 @@ pub(crate) enum ParserError {
     InvalidObject,
     #[error("invalid token")]
     InvalidToken(String),
+    #[error("invalid json")]
+    InvalidJson(String),
 }
 
 #[derive(Debug, Error)]
