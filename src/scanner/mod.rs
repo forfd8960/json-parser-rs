@@ -66,11 +66,11 @@ impl Scanner {
         let mut s = String::new();
 
         while let Some(c) = self.peek() {
-            if c != '"' && !self.is_at_end() {
-                self.advance();
-            } else {
+            if c == '"' || self.is_at_end() {
                 break;
             }
+
+            self.advance();
         }
 
         if self.is_at_end() {
@@ -86,11 +86,11 @@ impl Scanner {
 
     fn scan_number(&mut self) -> Result<Token, LexerError> {
         while let Some(c) = self.peek() {
-            if c.is_numeric() {
-                self.advance();
-            } else {
+            if !c.is_numeric() {
                 break;
             }
+
+            self.advance();
         }
 
         if let Some(c) = self.peek() {
@@ -100,11 +100,10 @@ impl Scanner {
                         self.advance();
 
                         while let Some(cc) = self.peek() {
-                            if cc.is_numeric() {
-                                self.advance();
-                            } else {
+                            if !cc.is_numeric() {
                                 break;
                             }
+                            self.advance();
                         }
                     }
                 }
@@ -120,11 +119,10 @@ impl Scanner {
 
     fn scan_identifier(&mut self) -> Result<Token, LexerError> {
         while let Some(c) = self.peek() {
-            if c.is_alphanumeric() {
-                self.advance();
-            } else {
+            if !c.is_alphanumeric() {
                 break;
             }
+            self.advance();
         }
 
         let text: String = self.chars[self.start..self.current].iter().collect();
@@ -166,8 +164,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_scan_string() -> anyhow::Result<()> {
-        let mut scanner = Scanner::new(r#"{"key":"value"}"#.to_string());
+    fn test_scan_json1() -> anyhow::Result<()> {
+        let mut scanner = Scanner::new(r#"{"key":"value","k1":100}"#.to_string());
         let tokens = scanner.scan()?;
         assert_eq!(
             tokens,
@@ -176,6 +174,41 @@ mod tests {
                 Token::String("key".to_string()),
                 Token::Colon,
                 Token::String("value".to_string()),
+                Token::Comma,
+                Token::String("k1".to_string()),
+                Token::Colon,
+                Token::Number(100 as f64),
+                Token::ObjectEnd,
+            ]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_scan_json2() -> anyhow::Result<()> {
+        let mut scanner = Scanner::new(r#"{"key":{"kx":1024},"k2":[99,"Hello",true]}"#.to_string());
+        let tokens = scanner.scan()?;
+        assert_eq!(
+            tokens,
+            vec![
+                Token::ObjectStart,
+                Token::String("key".to_string()),
+                Token::Colon,
+                Token::ObjectStart,
+                Token::String("kx".to_string()),
+                Token::Colon,
+                Token::Number(1024 as f64),
+                Token::ObjectEnd,
+                Token::Comma,
+                Token::String("k2".to_string()),
+                Token::Colon,
+                Token::ArrayStart,
+                Token::Number(99 as f64),
+                Token::Comma,
+                Token::String("Hello".to_string()),
+                Token::Comma,
+                Token::Boolean(true),
+                Token::ArrayEnd,
                 Token::ObjectEnd,
             ]
         );
