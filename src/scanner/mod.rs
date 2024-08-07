@@ -85,6 +85,16 @@ impl Scanner {
     }
 
     fn scan_number(&mut self) -> Result<Token, LexerError> {
+        self.peek_number();
+
+        let s: String = self.chars[self.start..self.current].iter().collect();
+        match s.parse::<f64>() {
+            Ok(n) => Ok(Token::Number(n)),
+            Err(_) => Err(LexerError::InvalidNumber(s)),
+        }
+    }
+
+    fn peek_number(&mut self) {
         while let Some(c) = self.peek() {
             if !c.is_numeric() {
                 break;
@@ -93,27 +103,28 @@ impl Scanner {
             self.advance();
         }
 
-        if let Some(c) = self.peek() {
-            if c == '.' {
-                if let Some(c_n) = self.peek_next() {
-                    if c_n.is_numeric() {
-                        self.advance();
-
-                        while let Some(cc) = self.peek() {
-                            if !cc.is_numeric() {
-                                break;
-                            }
-                            self.advance();
-                        }
-                    }
-                }
-            }
+        let cur = self.peek();
+        if cur.is_none() {
+            return;
         }
 
-        let s: String = self.chars[self.start..self.current].iter().collect();
-        match s.parse::<f64>() {
-            Ok(n) => Ok(Token::Number(n)),
-            Err(_) => Err(LexerError::InvalidNumber(s)),
+        if cur.unwrap() != '.' {
+            return;
+        }
+
+        if let Some(c_n) = self.peek_next() {
+            if !c_n.is_numeric() {
+                return;
+            }
+
+            self.advance();
+
+            while let Some(cc) = self.peek() {
+                if !cc.is_numeric() {
+                    break;
+                }
+                self.advance();
+            }
         }
     }
 
